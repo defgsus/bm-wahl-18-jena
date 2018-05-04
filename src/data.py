@@ -40,7 +40,7 @@ def download_file(url, filename, use_cache=True):
 
     print("saving %s" % filename)
     with open(filename, "wb") as fp:
-        fp.write(res.content)
+        fp.write(res.content[3:])  # there's a strange character in front!?
 
     return True
 
@@ -49,8 +49,7 @@ def load_json(filename, url):
     filename = FILENAME_PATTERN % filename
     download_file(url, filename)
     with open(filename) as fp:
-        jstr = fp.read()
-        data = json.loads(jstr[1:])  # there's a strange character in front!?
+        data = json.load(fp)
     return data
 
 
