@@ -75,10 +75,16 @@ def load_pandas_bmwahl(fileid):
                     break
 
             values = associate["values"]
+            for i, v in enumerate(indicator["values"]):
+                if isinstance(v, int):
+                    values[i] = v
 
-            dic[indicator["name"]] = values[1:]
+            dic[indicator["name"]] = [0 if not isinstance(v, int) else int(v) for v in values[1:]]
 
-    return pd.DataFrame(dic)
+    df = pd.DataFrame(dic)
+    df.index = df["Bezirk"]
+    del df["Bezirk"]
+    return df
 
 
 def load_pandas_stat():
@@ -99,7 +105,10 @@ def load_pandas_stat():
         for indicator in data["indicators"]:
             dic["%(name)s(%(date)s)" % indicator] = indicator["values"]
 
-    return pd.DataFrame(dic)
+    df = pd.DataFrame(dic)
+    df.index = df["Bezirk"]
+    del df["Bezirk"]
+    return df
 
 
 if __name__ == "__main__":
