@@ -1,4 +1,6 @@
 jupyter>=1.0.0
+Markdown>=2.6.11
 pandas>=0.22.0
+Pygments>=2.2.0
 requests>=2.18.4
 scipy>=1.0.1

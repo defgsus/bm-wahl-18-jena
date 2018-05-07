@@ -20,7 +20,63 @@ DATA_FILES = {
         "filename": "jena-stat-index.json",
         "url": "http://statistiken.jena.de/instantatlas/stadtbezirksstatistik/data.js"
     },
+
+    "stats-shape": {
+        "filename": "jena-stat-shape.json",
+        "url": "http://statistiken.jena.de/instantatlas/stadtbezirksstatistik/_Jena_StatBez.shp1.js",
+    },
+    "bm-shape": {
+        "filename": "bm-2018-jena-shape.json",
+        "url": "http://statistiken.jena.de/instantatlas/wahlstatistik2018_ob_wg1/_WBZ_Jena_20170630_extra.shp1.js",
+    },
 }
+
+BEZIRK_MAPPING = {
+    'Ammerbach Ort': ['045 Kita Ammberbach'],
+    'Beutenberg / Winzerlaer Straße': [''],
+    'Burgau Ort': [''],
+    'Closewitz': [''], 
+    'Cospeda': [''], 
+    'Drackendorf': [''], 
+    'Drackendorf / Lobeda-Ost': [''],
+    'Göschwitz': [''], 
+    'Ilmnitz': [''], 
+    'Isserstedt': [''], 
+    'Jena-Nord': [''], 
+    'Jenaprießnitz': [''],
+    'Jena-Süd': [''], 
+    'Jena-West': [''], 
+    'Jena-Zentrum': [''], 
+    'Krippendorf': [''], 
+    'Kunitz': [''],
+    'Laasan': [''], 
+    'Leutra': [''], 
+    'Lichtenhain Ort': [''], 
+    'Lobeda-Altstadt': [''],
+    'Lobeda-Ost': [''], 
+    'Lobeda-West': [''], 
+    'Löbstedt Ort': [''], 
+    'Lützeroda': [''], 
+    'Maua': [''],
+    'Mühlenstraße': [''], 
+    'Münchenroda': [''], 
+    'Nord II': [''], 
+    'Remderoda': [''],
+    'Ringwiese Flur Burgau': [''], 
+    'Vierzehnheiligen': [''],
+    'Wenigenjena / Kernberge': [''], 
+    'Wenigenjena / Schlegelsberg': [''],
+    'Wenigenjena Ort': [''], 
+    'Winzerla': [''], 
+    'Wogau': [''], 
+    'Wöllnitz': [''],
+    'Ziegenhain Ort': [''], 
+    'Ziegenhainer Tal': [''], 
+    'Zwätzen': [''], 
+    'nicht zugeordnet': [''],
+}
+
+
 
 FILENAME_PATTERN = "../data/%s"
 
@@ -39,8 +95,11 @@ def download_file(url, filename, use_cache=True):
         os.makedirs(filepath)
 
     print("saving %s" % filename)
+    data = res.content
+    if data and data[0] >= 128:  # there's a strange character in front!?
+        data = res.content[3:]
     with open(filename, "wb") as fp:
-        fp.write(res.content[3:])  # there's a strange character in front!?
+        fp.write(data)
 
     return True
 
@@ -113,8 +172,15 @@ def load_pandas_stat():
 
 if __name__ == "__main__":
 
-    for f in DATA_FILES:
-        if f.startswith("bm"):
-            load_pandas_bmwahl(f)
+    if 0:
+        for f in DATA_FILES:
+            if f.startswith("bm"):
+                load_pandas_bmwahl(f)
 
-    load_pandas_stat()
+        load_pandas_stat()
+
+    if 1:
+        def load_polygons(fileid):
+            data = load_json(DATA_FILES[fileid]["filename"], DATA_FILES[fileid]["url"])
+            print(data)
+        load_polygons("bm-shape")
