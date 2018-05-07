@@ -17,3 +17,26 @@
     margin-bottom: 10px;
     background: #f3fbd6;
 }
+
+
+
+
+.dataframe {
+    border: 1px solid gray;
+}
+
+.dataframe td, .dataframe th {
+    border: none;
+    border-bottom: 1px solid #aaa;
+    text-align: right;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.dataframe tbody th {
+    border-right: 1px solid #aaa;
+}
+
+.dataframe tbody tr:nth-child(odd) {
+    background: #d0f8ff;
+}

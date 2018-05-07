@@ -170,6 +170,25 @@ def load_pandas_stat():
     return df
 
 
+def rename_bmwahl(df):
+    mapping = {
+        "Wahlberechtigte": "n",
+        "Wähler": "nw",
+        "ungültige Stimmen": "nu",
+        'gültige Stimmen': "ng",
+        'Benjamin Koppe': "CDU",
+        'Martina Flämmich-Winckler': "LINKE",
+        'Dr. Albrecht Schröter': "SPD",
+        'Denny Jankowski': "AFD",
+        'Denis Peisker': "GRÜNE",
+        'Dr. Thomas Nitzsche': "FDP",
+        'Dr. Heidrun Jänchen': "πRATEN",
+        'Sandro Dreßler': "SANDRO",
+        'Arne Petrich': "ARNE",
+    }
+    return df.copy().rename(columns={c:mapping.get(c, c) for c in df.columns})
+
+
 if __name__ == "__main__":
 
     if 0:

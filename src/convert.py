@@ -27,7 +27,7 @@ class NotebookConverter():
                     if "text/html" in output.get("data", {}):
                         outp = "".join(output["data"]["text/html"])
                         if outp:
-                            html.append(outp)
+                            html.append(self._fix_html(outp))
                     elif "text/plain" in output.get("data", {}):
                         outp = "".join(output["data"]["text/plain"])
                         if outp:
@@ -58,6 +58,13 @@ class NotebookConverter():
     def to_html_file(self, filename, **kwargs):
         with open(filename, "wt") as fp:
             fp.write(self.to_html(**kwargs))
+
+    @classmethod
+    def _fix_html(cls, h):
+        return h
+        if '<style' in h:
+            h = h[:h.index('<style')] + h[h.index("</style>")+8:]
+        return h
 
     @classmethod
     def python_to_html(cls, code):
