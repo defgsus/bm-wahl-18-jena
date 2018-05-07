@@ -1,0 +1,19 @@
+
+.highlight {
+    padding: 5px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    background: #f8f9da;
+}
+
+.highlight pre {
+    padding: 0px;
+    margin: 0px;
+}
+
+
+.output {
+    padding: 5px;
+    margin-bottom: 10px;
+    background: #f3fbd6;
+}
