@@ -50,7 +50,9 @@ class NotebookConverter():
                 </head>
             
                 <body>
-                    %s    
+                    <div class="page">
+                        %s    
+                    </div>
                 </body>
             </html>""" % (stylesheet, html)
         return html
