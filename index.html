@@ -1,0 +1,2507 @@
+
+            <!doctype html>
+            <html>
+                <head profile="http://www.w3.org/2005/10/profile">
+                    <meta charset="utf-8">
+                    <link href="css/highlight.css" rel="stylesheet" type="text/css" />
+                    <link href="css/style.css" rel="stylesheet" type="text/css" />
+                </head>
+            
+                <body>
+                    <div class="page">
+                        <!-- output #0 -->
+<h1>Ergebnisse der Wahl zum Oberbürgermeister Jena, 2018</h1>
+<p>Jena hat jetzt einen FDP-Bürgermeister und alles wird besser. </p>
+<h3>erster Wahlgang</h3>
+<p><img alt="img/bm01-offiziell.png" src="img/bm01-offiziell.png" /></p>
+<h3>Stichwahl</h3>
+<p><img alt="img/bm02-offiziell.png" src="img/bm02-offiziell.png" /></p>
+<p>Die Ergebnisse und Bilder stammen von der sogenannten <a href="http://statistiken.jena.de"><em>"Statistikseite"</em></a> der Stadt Jena.</p>
+<p>Wenn man schon eine Weile in Jena lebt, wundert man sich evtl. über das Ergebnis. Dass unser lieber Schröter nach 12 Jahren abgewählt wurde, auch noch zugunsten eines FDP-Kandidaten, war schon überraschend. Mal sehen, ob es rechnerisch möglich ist, Hinweise auf den Sinneswandel der Bürger zu erhalten.</p>
+<h2>Vorbereitung der Daten</h2>
+<p>Die Zahlen pro Wahlkreis sind <a href="http://geojson.org">GEOJSON</a> kodiert. <a href="https://github.com/defgsus/bm-wahl-18-jena/blob/master/src/data.py">Ein Python-Skript</a> hohlt die Daten aus dem Netz und konvertiert das json-Zeug in einen <a href="https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html">pandas DataFrame</a>. Das ist einfach ne Tabelle mit recht praktischen Funktionen zum Rechnen, Filtern und Anzeigen.</p>
+
+<!-- output #1 -->
+<div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">data</span> <span class="kn">import</span> <span class="o">*</span>
+</pre></div>
+
+
+<!-- output #2 -->
+<p>Hier wird die Tabelle des ersten Wahlgangs geladen:</p>
+
+<!-- output #3 -->
+<div class="highlight"><pre><span></span><span class="n">bm1</span> <span class="o">=</span> <span class="n">load_pandas_bmwahl</span><span class="p">(</span><span class="s2">&quot;bm01&quot;</span><span class="p">)</span>
+<span class="n">bm1</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>  <span class="c1"># zeigt die ersten 5 Zeilen</span>
+</pre></div>
+
+
+<!-- output #4 -->
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Wahlberechtigte</th>
+      <th>Wähler</th>
+      <th>ungültige Stimmen</th>
+      <th>gültige Stimmen</th>
+      <th>Benjamin Koppe</th>
+      <th>Martina Flämmich-Winckler</th>
+      <th>Dr. Albrecht Schröter</th>
+      <th>Denny Jankowski</th>
+      <th>Denis Peisker</th>
+      <th>Dr. Thomas Nitzsche</th>
+      <th>Dr. Heidrun Jänchen</th>
+      <th>Sandro Dreßler</th>
+      <th>Arne Petrich</th>
+    </tr>
+    <tr>
+      <th>Bezirk</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>001 Dezernat Stadtentwicklung</th>
+      <td>1685</td>
+      <td>615</td>
+      <td>5</td>
+      <td>610</td>
+      <td>78</td>
+      <td>112</td>
+      <td>157</td>
+      <td>26</td>
+      <td>81</td>
+      <td>86</td>
+      <td>56</td>
+      <td>7</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <th>002 WE Catering / Raum OG</th>
+      <td>1144</td>
+      <td>540</td>
+      <td>3</td>
+      <td>537</td>
+      <td>66</td>
+      <td>73</td>
+      <td>182</td>
+      <td>19</td>
+      <td>73</td>
+      <td>88</td>
+      <td>29</td>
+      <td>5</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>003 Nordschule / Raum 00_03</th>
+      <td>777</td>
+      <td>272</td>
+      <td>2</td>
+      <td>270</td>
+      <td>31</td>
+      <td>39</td>
+      <td>70</td>
+      <td>20</td>
+      <td>41</td>
+      <td>45</td>
+      <td>16</td>
+      <td>7</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>004 WE Catering / Raum EG</th>
+      <td>1682</td>
+      <td>785</td>
+      <td>1</td>
+      <td>784</td>
+      <td>97</td>
+      <td>92</td>
+      <td>221</td>
+      <td>29</td>
+      <td>130</td>
+      <td>150</td>
+      <td>49</td>
+      <td>6</td>
+      <td>10</td>
+    </tr>
+    <tr>
+      <th>005 Volksbad-Anbau</th>
+      <td>1543</td>
+      <td>612</td>
+      <td>1</td>
+      <td>611</td>
+      <td>98</td>
+      <td>62</td>
+      <td>179</td>
+      <td>28</td>
+      <td>77</td>
+      <td>111</td>
+      <td>38</td>
+      <td>15</td>
+      <td>3</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- output #5 -->
+<p>Um zu Prüfen, dass alles korrekt ist, vergleichen wir die akkumulierten Zahlen mit den Offiziellen von der Webseite.</p>
+
+<!-- output #6 -->
+<div class="highlight"><pre><span></span><span class="n">bm1</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</pre></div>
+
+
+<!-- output #7 -->
+<div class="output"><pre>Wahlberechtigte              85401
+Wähler                       44946
+ungültige Stimmen              210
+gültige Stimmen              44736
+Benjamin Koppe                6314
+Martina Flämmich-Winckler     4999
+Dr. Albrecht Schröter        10965
+Denny Jankowski               3444
+Denis Peisker                 3377
+Dr. Thomas Nitzsche          12046
+Dr. Heidrun Jänchen           2076
+Sandro Dreßler                 918
+Arne Petrich                   597
+dtype: int64</pre></div>
+
+<!-- output #8 -->
+<p>Passt. Und die Tabelle zur Stichwahl:</p>
+
+<!-- output #9 -->
+<div class="highlight"><pre><span></span><span class="n">bm2</span> <span class="o">=</span> <span class="n">load_pandas_bmwahl</span><span class="p">(</span><span class="s2">&quot;bm02&quot;</span><span class="p">)</span>
+<span class="n">bm2</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+</pre></div>
+
+
+<!-- output #10 -->
+<div class="output"><pre>Wahlberechtigte          85220
+Wähler                   39775
+ungültige Stimmen          294
+gültige Stimmen          39481
+Dr. Albrecht Schröter    14499
+Dr. Thomas Nitzsche      24982
+dtype: int64</pre></div>
+
+<!-- output #11 -->
+<p>Zur besseren Übersicht in den Tabellen werden die Spalten erstmal umbenannt:</p>
+
+<!-- output #12 -->
+<div class="highlight"><pre><span></span><span class="n">bm1</span> <span class="o">=</span> <span class="n">rename_bmwahl</span><span class="p">(</span><span class="n">bm1</span><span class="p">)</span>
+<span class="n">bm2</span> <span class="o">=</span> <span class="n">rename_bmwahl</span><span class="p">(</span><span class="n">bm2</span><span class="p">)</span>
+<span class="n">bm1</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+</pre></div>
+
+
+<!-- output #13 -->
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>n</th>
+      <th>nw</th>
+      <th>nu</th>
+      <th>ng</th>
+      <th>CDU</th>
+      <th>LINKE</th>
+      <th>SPD</th>
+      <th>AFD</th>
+      <th>GRÜNE</th>
+      <th>FDP</th>
+      <th>πRATEN</th>
+      <th>SANDRO</th>
+      <th>ARNE</th>
+    </tr>
+    <tr>
+      <th>Bezirk</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>001 Dezernat Stadtentwicklung</th>
+      <td>1685</td>
+      <td>615</td>
+      <td>5</td>
+      <td>610</td>
+      <td>78</td>
+      <td>112</td>
+      <td>157</td>
+      <td>26</td>
+      <td>81</td>
+      <td>86</td>
+      <td>56</td>
+      <td>7</td>
+      <td>7</td>
+    </tr>
+    <tr>
+      <th>002 WE Catering / Raum OG</th>
+      <td>1144</td>
+      <td>540</td>
+      <td>3</td>
+      <td>537</td>
+      <td>66</td>
+      <td>73</td>
+      <td>182</td>
+      <td>19</td>
+      <td>73</td>
+      <td>88</td>
+      <td>29</td>
+      <td>5</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>003 Nordschule / Raum 00_03</th>
+      <td>777</td>
+      <td>272</td>
+      <td>2</td>
+      <td>270</td>
+      <td>31</td>
+      <td>39</td>
+      <td>70</td>
+      <td>20</td>
+      <td>41</td>
+      <td>45</td>
+      <td>16</td>
+      <td>7</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- output #14 -->
+<p><strong>n</strong> = Anzahl Wahlberechtigte, <strong>nw</strong> = Anzahl Wähler, <strong>nu</strong> = Anzahl ungültige Stimmen und <strong>ng</strong> = Anzahl gültige Stimmen.</p>
+<p>Es ist vielleicht nicht ganz fair, Bürgermeisterkandidaten in Parteien umzubenennen. In kleinen Kommunen ist die Parteizugehörigkeit evtl. nicht so entscheidend. Aber wenn man nicht in Jena wohnt, und somit die ganze Zeit den Wahlwerbeplakaten ausgesetzt ist, kann man mit den bürgerlichen Namen wahrscheinlich nicht so viel anfangen.</p>
+
+<!-- output #15 -->
+<p>Schauen wir ans Ende der Tabelle, fallen die Briefwahlbezirke auf.</p>
+
+<!-- output #16 -->
+<div class="highlight"><pre><span></span><span class="n">bm1</span><span class="o">.</span><span class="n">tail</span><span class="p">(</span><span class="mi">20</span><span class="p">)</span>
+</pre></div>
+
+
+<!-- output #17 -->
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>n</th>
+      <th>nw</th>
+      <th>nu</th>
+      <th>ng</th>
+      <th>CDU</th>
+      <th>LINKE</th>
+      <th>SPD</th>
+      <th>AFD</th>
+      <th>GRÜNE</th>
+      <th>FDP</th>
+      <th>πRATEN</th>
+      <th>SANDRO</th>
+      <th>ARNE</th>
+    </tr>
+    <tr>
+      <th>Bezirk</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>083 Feuerwehrgerätehaus Vierzehnheiligen</th>
+      <td>88</td>
+      <td>52</td>
+      <td>0</td>
+      <td>52</td>
+      <td>15</td>
+      <td>3</td>
+      <td>6</td>
+      <td>3</td>
+      <td>2</td>
+      <td>19</td>
+      <td>1</td>
+      <td>3</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>084 Feuerwehrgerätehaus Krippendorf</th>
+      <td>96</td>
+      <td>58</td>
+      <td>0</td>
+      <td>58</td>
+      <td>4</td>
+      <td>2</td>
+      <td>23</td>
+      <td>14</td>
+      <td>0</td>
+      <td>9</td>
+      <td>3</td>
+      <td>3</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>085 Vereinshaus Lützeroda</th>
+      <td>140</td>
+      <td>84</td>
+      <td>1</td>
+      <td>83</td>
+      <td>21</td>
+      <td>14</td>
+      <td>22</td>
+      <td>6</td>
+      <td>5</td>
+      <td>14</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>086 Gemeindebüro Cospeda</th>
+      <td>1128</td>
+      <td>580</td>
+      <td>2</td>
+      <td>578</td>
+      <td>83</td>
+      <td>46</td>
+      <td>144</td>
+      <td>45</td>
+      <td>26</td>
+      <td>196</td>
+      <td>29</td>
+      <td>7</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>087 Feuerwehrgerätehaus Closewitz</th>
+      <td>112</td>
+      <td>76</td>
+      <td>0</td>
+      <td>76</td>
+      <td>34</td>
+      <td>0</td>
+      <td>8</td>
+      <td>8</td>
+      <td>3</td>
+      <td>19</td>
+      <td>4</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>Briefwahlbezirk 01</th>
+      <td>0</td>
+      <td>430</td>
+      <td>0</td>
+      <td>430</td>
+      <td>55</td>
+      <td>41</td>
+      <td>109</td>
+      <td>33</td>
+      <td>35</td>
+      <td>121</td>
+      <td>22</td>
+      <td>9</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>Briefwahlbezirk 02</th>
+      <td>0</td>
+      <td>568</td>
+      <td>3</td>
+      <td>565</td>
+      <td>88</td>
+      <td>85</td>
+      <td>148</td>
+      <td>16</td>
+      <td>69</td>
+      <td>113</td>
+      <td>35</td>
+      <td>3</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>Briefwahlbezirk 03</th>
+      <td>0</td>
+      <td>586</td>
+      <td>0</td>
+      <td>586</td>
+      <td>75</td>
+      <td>53</td>
+      <td>153</td>
+      <td>31</td>
+      <td>44</td>
+      <td>181</td>
+      <td>37</td>
+      <td>4</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>Briefwahlbezirk 04</th>
+      <td>0</td>
+      <td>514</td>
+      <td>2</td>
+      <td>512</td>
+      <td>74</td>
+      <td>59</td>
+      <td>139</td>
+      <td>31</td>
+      <td>36</td>
+      <td>134</td>
+      <td>24</td>
+      <td>6</td>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>Briefwahlbezirk 05</th>
+      <td>0</td>
+      <td>721</td>
+      <td>2</td>
+      <td>719</td>
+      <td>126</td>
+      <td>73</td>
+      <td>177</td>
+      <td>25</td>
+      <td>75</td>
+      <td>197</td>
+      <td>34</td>
+      <td>7</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>Briefwahlbezirk 06</th>
+      <td>0</td>
+      <td>630</td>
+      <td>2</td>
+      <td>628</td>
+      <td>97</td>
+      <td>70</td>
+      <td>181</td>
+      <td>21</td>
+      <td>77</td>
+      <td>123</td>
+      <td>40</td>
+      <td>13</td>
+      <td>6</td>
+    </tr>
+    <tr>
+      <th>Briefwahlbezirk 07</th>
+      <td>0</td>
+      <td>406</td>
+      <td>0</td>
+      <td>406</td>
+      <td>70</td>
+      <td>32</td>
+      <td>84</td>
+      <td>27</td>
+      <td>22</td>
+      <td>129</td>
+      <td>31</td>
+      <td>8</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>Briefwahlbezirk 08</th>
+      <td>0</td>
+      <td>393</td>
+      <td>0</td>
+      <td>393</td>
+      <td>63</td>
+      <td>33</td>
+      <td>81</td>
+      <td>22</td>
+      <td>9</td>
+      <td>156</td>
+      <td>18</td>
+      <td>8</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>Briefwahlbezirk 09</th>
+      <td>0</td>
+      <td>713</td>
+      <td>1</td>
+      <td>712</td>
+      <td>104</td>
+      <td>94</td>
+      <td>192</td>
+      <td>43</td>
+      <td>35</td>
+      <td>182</td>
+      <td>31</td>
+      <td>26</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>Briefwahlbezirk 10</th>
+      <td>0</td>
+      <td>592</td>
+      <td>1</td>
+      <td>591</td>
+      <td>79</td>
+      <td>109</td>
+      <td>133</td>
+      <td>61</td>
+      <td>22</td>
+      <td>133</td>
+      <td>19</td>
+      <td>26</td>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>Briefwahlbezirk 11</th>
+      <td>0</td>
+      <td>639</td>
+      <td>2</td>
+      <td>637</td>
+      <td>102</td>
+      <td>113</td>
+      <td>154</td>
+      <td>43</td>
+      <td>23</td>
+      <td>156</td>
+      <td>20</td>
+      <td>10</td>
+      <td>16</td>
+    </tr>
+    <tr>
+      <th>Briefwahlbezirk 12</th>
+      <td>0</td>
+      <td>526</td>
+      <td>1</td>
+      <td>525</td>
+      <td>70</td>
+      <td>29</td>
+      <td>160</td>
+      <td>20</td>
+      <td>36</td>
+      <td>170</td>
+      <td>25</td>
+      <td>11</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>Briefwahlbezirk 13</th>
+      <td>0</td>
+      <td>579</td>
+      <td>0</td>
+      <td>579</td>
+      <td>95</td>
+      <td>35</td>
+      <td>157</td>
+      <td>40</td>
+      <td>25</td>
+      <td>192</td>
+      <td>22</td>
+      <td>11</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>Briefwahlbezirk 14</th>
+      <td>0</td>
+      <td>588</td>
+      <td>0</td>
+      <td>588</td>
+      <td>90</td>
+      <td>47</td>
+      <td>139</td>
+      <td>45</td>
+      <td>43</td>
+      <td>184</td>
+      <td>23</td>
+      <td>7</td>
+      <td>10</td>
+    </tr>
+    <tr>
+      <th>Briefwahlbezirk 15</th>
+      <td>0</td>
+      <td>507</td>
+      <td>3</td>
+      <td>504</td>
+      <td>55</td>
+      <td>53</td>
+      <td>127</td>
+      <td>34</td>
+      <td>35</td>
+      <td>165</td>
+      <td>20</td>
+      <td>5</td>
+      <td>10</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- output #18 -->
+<p>Die möchte ich gern erstmal entfernen und später separat betrachten.
+Dazu werden alle Spalten gefiltert in denen die Anzahl der Wähler gleich 0 ist (typisch für Briefwahlbezirke in allen Wahlstatistiken).</p>
+
+<!-- output #19 -->
+<div class="highlight"><pre><span></span><span class="c1"># Urnenwahlergebnisse (Wahlberechtigte ungleich 0)</span>
+<span class="n">bm1_urne</span> <span class="o">=</span> <span class="n">bm1</span><span class="p">[</span><span class="n">bm1</span><span class="p">[</span><span class="s2">&quot;n&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">]</span>
+<span class="n">bm2_urne</span> <span class="o">=</span> <span class="n">bm2</span><span class="p">[</span><span class="n">bm2</span><span class="p">[</span><span class="s2">&quot;n&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">]</span>
+<span class="c1"># Briefwahlergebnisse (Wahlberechtigte gleich 0)</span>
+<span class="n">bm1_brief</span> <span class="o">=</span> <span class="n">bm1</span><span class="p">[</span><span class="n">bm1</span><span class="p">[</span><span class="s2">&quot;n&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
+<span class="n">bm2_brief</span> <span class="o">=</span> <span class="n">bm2</span><span class="p">[</span><span class="n">bm2</span><span class="p">[</span><span class="s2">&quot;n&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
+
+<span class="n">bm1_urne</span><span class="o">.</span><span class="n">tail</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+</pre></div>
+
+
+<!-- output #20 -->
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>n</th>
+      <th>nw</th>
+      <th>nu</th>
+      <th>ng</th>
+      <th>CDU</th>
+      <th>LINKE</th>
+      <th>SPD</th>
+      <th>AFD</th>
+      <th>GRÜNE</th>
+      <th>FDP</th>
+      <th>πRATEN</th>
+      <th>SANDRO</th>
+      <th>ARNE</th>
+    </tr>
+    <tr>
+      <th>Bezirk</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>083 Feuerwehrgerätehaus Vierzehnheiligen</th>
+      <td>88</td>
+      <td>52</td>
+      <td>0</td>
+      <td>52</td>
+      <td>15</td>
+      <td>3</td>
+      <td>6</td>
+      <td>3</td>
+      <td>2</td>
+      <td>19</td>
+      <td>1</td>
+      <td>3</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>084 Feuerwehrgerätehaus Krippendorf</th>
+      <td>96</td>
+      <td>58</td>
+      <td>0</td>
+      <td>58</td>
+      <td>4</td>
+      <td>2</td>
+      <td>23</td>
+      <td>14</td>
+      <td>0</td>
+      <td>9</td>
+      <td>3</td>
+      <td>3</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>085 Vereinshaus Lützeroda</th>
+      <td>140</td>
+      <td>84</td>
+      <td>1</td>
+      <td>83</td>
+      <td>21</td>
+      <td>14</td>
+      <td>22</td>
+      <td>6</td>
+      <td>5</td>
+      <td>14</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>086 Gemeindebüro Cospeda</th>
+      <td>1128</td>
+      <td>580</td>
+      <td>2</td>
+      <td>578</td>
+      <td>83</td>
+      <td>46</td>
+      <td>144</td>
+      <td>45</td>
+      <td>26</td>
+      <td>196</td>
+      <td>29</td>
+      <td>7</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>087 Feuerwehrgerätehaus Closewitz</th>
+      <td>112</td>
+      <td>76</td>
+      <td>0</td>
+      <td>76</td>
+      <td>34</td>
+      <td>0</td>
+      <td>8</td>
+      <td>8</td>
+      <td>3</td>
+      <td>19</td>
+      <td>4</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- output #21 -->
+<p>Hier die Summen der Urnen- und Briefwahl im Vergleich:</p>
+
+<!-- output #22 -->
+<div class="highlight"><pre><span></span><span class="n">dic</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+<span class="n">dic</span><span class="p">[</span><span class="s2">&quot;Urne&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bm1_urne</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<span class="n">dic</span><span class="p">[</span><span class="s2">&quot;Brief&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bm1_brief</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<span class="n">dic</span><span class="p">[</span><span class="s2">&quot;Brief %&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bm1_brief</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">bm1_urne</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">*</span> <span class="mi">100</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">dic</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+
+
+<!-- output #23 -->
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Urne</th>
+      <th>Brief</th>
+      <th>Brief %</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>n</th>
+      <td>85401</td>
+      <td>0</td>
+      <td>0.00</td>
+    </tr>
+    <tr>
+      <th>nw</th>
+      <td>36554</td>
+      <td>8392</td>
+      <td>22.96</td>
+    </tr>
+    <tr>
+      <th>nu</th>
+      <td>193</td>
+      <td>17</td>
+      <td>8.81</td>
+    </tr>
+    <tr>
+      <th>ng</th>
+      <td>36361</td>
+      <td>8375</td>
+      <td>23.03</td>
+    </tr>
+    <tr>
+      <th>CDU</th>
+      <td>5071</td>
+      <td>1243</td>
+      <td>24.51</td>
+    </tr>
+    <tr>
+      <th>LINKE</th>
+      <td>4073</td>
+      <td>926</td>
+      <td>22.74</td>
+    </tr>
+    <tr>
+      <th>SPD</th>
+      <td>8831</td>
+      <td>2134</td>
+      <td>24.16</td>
+    </tr>
+    <tr>
+      <th>AFD</th>
+      <td>2952</td>
+      <td>492</td>
+      <td>16.67</td>
+    </tr>
+    <tr>
+      <th>GRÜNE</th>
+      <td>2791</td>
+      <td>586</td>
+      <td>21.00</td>
+    </tr>
+    <tr>
+      <th>FDP</th>
+      <td>9710</td>
+      <td>2336</td>
+      <td>24.06</td>
+    </tr>
+    <tr>
+      <th>πRATEN</th>
+      <td>1675</td>
+      <td>401</td>
+      <td>23.94</td>
+    </tr>
+    <tr>
+      <th>SANDRO</th>
+      <td>764</td>
+      <td>154</td>
+      <td>20.16</td>
+    </tr>
+    <tr>
+      <th>ARNE</th>
+      <td>494</td>
+      <td>103</td>
+      <td>20.85</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- output #24 -->
+<p>Mich interessiert jetzt natürlich vor Allem die Entwicklung der Wahlergebnisse von <em>Albrecht Schröter</em> (SPD) und <em>Thomas Nitzsche</em> (FDP) zwischen erstem und zweitem Wahlgang, deshalb füge ich noch ein paar errechnete Werte in die Tabelle ein:</p>
+
+<!-- output #25 -->
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">enrich_dataframe</span><span class="p">(</span><span class="n">bm1</span><span class="p">,</span> <span class="n">bm2</span><span class="p">):</span>
+    <span class="c1"># Ergebnisse 1. Wahlgang</span>
+    <span class="n">spd1</span> <span class="o">=</span> <span class="n">bm1</span><span class="p">[</span><span class="s2">&quot;SPD&quot;</span><span class="p">]</span>
+    <span class="n">fdp1</span> <span class="o">=</span> <span class="n">bm1</span><span class="p">[</span><span class="s2">&quot;FDP&quot;</span><span class="p">]</span>
+    <span class="c1"># Ergebnisse Stichwahl</span>
+    <span class="n">spd2</span> <span class="o">=</span> <span class="n">bm2</span><span class="p">[</span><span class="s2">&quot;SPD&quot;</span><span class="p">]</span>
+    <span class="n">fdp2</span> <span class="o">=</span> <span class="n">bm2</span><span class="p">[</span><span class="s2">&quot;FDP&quot;</span><span class="p">]</span>
+
+    <span class="n">df</span> <span class="o">=</span> <span class="n">bm1</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="c1"># Speichere die Ergebnis der Stichwahl</span>
+    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;SPD2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">spd2</span>
+    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;FDP2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fdp2</span>
+    <span class="c1"># Stimmen-Entwicklung von 1. zu 2. Wahl</span>
+    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;SPD+&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">spd2</span> <span class="o">-</span> <span class="n">spd1</span>
+    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;FDP+&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fdp2</span> <span class="o">-</span> <span class="n">fdp1</span>
+    <span class="c1"># Vorsprung FDP vor SPD, jeweils 1. und 2. Wahl</span>
+    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;FDP1&gt;&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fdp1</span> <span class="o">-</span> <span class="n">spd1</span>
+    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;FDP2&gt;&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fdp2</span> <span class="o">-</span> <span class="n">spd2</span>
+    <span class="c1"># Entwicklung des Vorsprungs der FDP vor SPD, von 1. zu 2. Wahl</span>
+    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;FDP&gt;+&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">fdp2</span> <span class="o">-</span> <span class="n">spd2</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">fdp1</span> <span class="o">-</span> <span class="n">spd1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span>
+
+<span class="n">df</span> <span class="o">=</span> <span class="n">enrich_dataframe</span><span class="p">(</span><span class="n">bm1_urne</span><span class="p">,</span> <span class="n">bm2_urne</span><span class="p">)</span>
+<span class="n">df</span><span class="o">.</span><span class="n">tail</span><span class="p">()</span>
+</pre></div>
+
+
+<!-- output #26 -->
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>n</th>
+      <th>nw</th>
+      <th>nu</th>
+      <th>ng</th>
+      <th>CDU</th>
+      <th>LINKE</th>
+      <th>SPD</th>
+      <th>AFD</th>
+      <th>GRÜNE</th>
+      <th>FDP</th>
+      <th>πRATEN</th>
+      <th>SANDRO</th>
+      <th>ARNE</th>
+      <th>SPD2</th>
+      <th>FDP2</th>
+      <th>SPD+</th>
+      <th>FDP+</th>
+      <th>FDP1&gt;</th>
+      <th>FDP2&gt;</th>
+      <th>FDP&gt;+</th>
+    </tr>
+    <tr>
+      <th>Bezirk</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>083 Feuerwehrgerätehaus Vierzehnheiligen</th>
+      <td>88</td>
+      <td>52</td>
+      <td>0</td>
+      <td>52</td>
+      <td>15</td>
+      <td>3</td>
+      <td>6</td>
+      <td>3</td>
+      <td>2</td>
+      <td>19</td>
+      <td>1</td>
+      <td>3</td>
+      <td>0</td>
+      <td>8</td>
+      <td>42</td>
+      <td>2</td>
+      <td>23</td>
+      <td>13</td>
+      <td>34</td>
+      <td>21</td>
+    </tr>
+    <tr>
+      <th>084 Feuerwehrgerätehaus Krippendorf</th>
+      <td>96</td>
+      <td>58</td>
+      <td>0</td>
+      <td>58</td>
+      <td>4</td>
+      <td>2</td>
+      <td>23</td>
+      <td>14</td>
+      <td>0</td>
+      <td>9</td>
+      <td>3</td>
+      <td>3</td>
+      <td>0</td>
+      <td>23</td>
+      <td>36</td>
+      <td>0</td>
+      <td>27</td>
+      <td>-14</td>
+      <td>13</td>
+      <td>27</td>
+    </tr>
+    <tr>
+      <th>085 Vereinshaus Lützeroda</th>
+      <td>140</td>
+      <td>84</td>
+      <td>1</td>
+      <td>83</td>
+      <td>21</td>
+      <td>14</td>
+      <td>22</td>
+      <td>6</td>
+      <td>5</td>
+      <td>14</td>
+      <td>1</td>
+      <td>0</td>
+      <td>0</td>
+      <td>27</td>
+      <td>48</td>
+      <td>5</td>
+      <td>34</td>
+      <td>-8</td>
+      <td>21</td>
+      <td>29</td>
+    </tr>
+    <tr>
+      <th>086 Gemeindebüro Cospeda</th>
+      <td>1128</td>
+      <td>580</td>
+      <td>2</td>
+      <td>578</td>
+      <td>83</td>
+      <td>46</td>
+      <td>144</td>
+      <td>45</td>
+      <td>26</td>
+      <td>196</td>
+      <td>29</td>
+      <td>7</td>
+      <td>2</td>
+      <td>148</td>
+      <td>306</td>
+      <td>4</td>
+      <td>110</td>
+      <td>52</td>
+      <td>158</td>
+      <td>106</td>
+    </tr>
+    <tr>
+      <th>087 Feuerwehrgerätehaus Closewitz</th>
+      <td>112</td>
+      <td>76</td>
+      <td>0</td>
+      <td>76</td>
+      <td>34</td>
+      <td>0</td>
+      <td>8</td>
+      <td>8</td>
+      <td>3</td>
+      <td>19</td>
+      <td>4</td>
+      <td>0</td>
+      <td>0</td>
+      <td>8</td>
+      <td>59</td>
+      <td>0</td>
+      <td>40</td>
+      <td>11</td>
+      <td>51</td>
+      <td>40</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- output #27 -->
+<p>Als nächstes werden die Wahlergebnisse in Prozent umgewandelt, um die Größe eines Wahlkreises zu egalisieren:</p>
+
+<!-- output #28 -->
+<div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">calc_percent</span><span class="p">(</span><span class="n">bm</span><span class="p">):</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">bm</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="c1"># Stimmen für Parteien in Prozent der gültigen Stimmen</span>
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">bm</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">4</span><span class="p">:]:</span>
+        <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">/</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;ng&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span>
+    <span class="c1"># gültige und ungültige Stimmen in Prozent der Wähler</span>
+    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;ng&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;ng&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;nw&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span>
+    <span class="n">df</span><span class="p">[</span><span class="s2">&quot;nu&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;nu&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;nw&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span>
+    <span class="c1"># Wähler in Prozent der Wahlberechtigten</span>
+    <span class="k">if</span> <span class="nb">max</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">&quot;n&quot;</span><span class="p">]):</span>
+        <span class="n">df</span><span class="p">[</span><span class="s2">&quot;nw&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;nw&quot;</span><span class="p">]</span> <span class="o">/</span> <span class="n">df</span><span class="p">[</span><span class="s2">&quot;n&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span>
+    <span class="k">return</span> <span class="n">df</span>
+<span class="n">dfp</span> <span class="o">=</span> <span class="n">calc_percent</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+<span class="n">dfp</span><span class="o">.</span><span class="n">head</span><span class="p">()</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+
+
+<!-- output #29 -->
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>n</th>
+      <th>nw</th>
+      <th>nu</th>
+      <th>ng</th>
+      <th>CDU</th>
+      <th>LINKE</th>
+      <th>SPD</th>
+      <th>AFD</th>
+      <th>GRÜNE</th>
+      <th>FDP</th>
+      <th>πRATEN</th>
+      <th>SANDRO</th>
+      <th>ARNE</th>
+      <th>SPD2</th>
+      <th>FDP2</th>
+      <th>SPD+</th>
+      <th>FDP+</th>
+      <th>FDP1&gt;</th>
+      <th>FDP2&gt;</th>
+      <th>FDP&gt;+</th>
+    </tr>
+    <tr>
+      <th>Bezirk</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>001 Dezernat Stadtentwicklung</th>
+      <td>1685</td>
+      <td>36.50</td>
+      <td>0.81</td>
+      <td>99.19</td>
+      <td>12.79</td>
+      <td>18.36</td>
+      <td>25.74</td>
+      <td>4.26</td>
+      <td>13.28</td>
+      <td>14.10</td>
+      <td>9.18</td>
+      <td>1.15</td>
+      <td>1.15</td>
+      <td>37.05</td>
+      <td>33.93</td>
+      <td>11.31</td>
+      <td>19.84</td>
+      <td>-11.64</td>
+      <td>-3.11</td>
+      <td>8.52</td>
+    </tr>
+    <tr>
+      <th>002 WE Catering / Raum OG</th>
+      <td>1144</td>
+      <td>47.20</td>
+      <td>0.56</td>
+      <td>99.44</td>
+      <td>12.29</td>
+      <td>13.59</td>
+      <td>33.89</td>
+      <td>3.54</td>
+      <td>13.59</td>
+      <td>16.39</td>
+      <td>5.40</td>
+      <td>0.93</td>
+      <td>0.37</td>
+      <td>43.39</td>
+      <td>32.03</td>
+      <td>9.50</td>
+      <td>15.64</td>
+      <td>-17.50</td>
+      <td>-11.36</td>
+      <td>6.15</td>
+    </tr>
+    <tr>
+      <th>003 Nordschule / Raum 00_03</th>
+      <td>777</td>
+      <td>35.01</td>
+      <td>0.74</td>
+      <td>99.26</td>
+      <td>11.48</td>
+      <td>14.44</td>
+      <td>25.93</td>
+      <td>7.41</td>
+      <td>15.19</td>
+      <td>16.67</td>
+      <td>5.93</td>
+      <td>2.59</td>
+      <td>0.37</td>
+      <td>37.78</td>
+      <td>35.19</td>
+      <td>11.85</td>
+      <td>18.52</td>
+      <td>-9.26</td>
+      <td>-2.59</td>
+      <td>6.67</td>
+    </tr>
+    <tr>
+      <th>004 WE Catering / Raum EG</th>
+      <td>1682</td>
+      <td>46.67</td>
+      <td>0.13</td>
+      <td>99.87</td>
+      <td>12.37</td>
+      <td>11.73</td>
+      <td>28.19</td>
+      <td>3.70</td>
+      <td>16.58</td>
+      <td>19.13</td>
+      <td>6.25</td>
+      <td>0.77</td>
+      <td>1.28</td>
+      <td>39.41</td>
+      <td>32.91</td>
+      <td>11.22</td>
+      <td>13.78</td>
+      <td>-9.06</td>
+      <td>-6.51</td>
+      <td>2.55</td>
+    </tr>
+    <tr>
+      <th>005 Volksbad-Anbau</th>
+      <td>1543</td>
+      <td>39.66</td>
+      <td>0.16</td>
+      <td>99.84</td>
+      <td>16.04</td>
+      <td>10.15</td>
+      <td>29.30</td>
+      <td>4.58</td>
+      <td>12.60</td>
+      <td>18.17</td>
+      <td>6.22</td>
+      <td>2.45</td>
+      <td>0.49</td>
+      <td>36.17</td>
+      <td>37.32</td>
+      <td>6.87</td>
+      <td>19.15</td>
+      <td>-11.13</td>
+      <td>1.15</td>
+      <td>12.27</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- output #30 -->
+<h2>Was sagt der Durchschnitt</h2>
+
+<!-- output #31 -->
+<div class="highlight"><pre><span></span><span class="n">dfp</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+</pre></div>
+
+
+<!-- output #32 -->
+<div class="output"><pre>n         981.620690
+nw         44.351009
+nu          0.574870
+ng         99.425130
+CDU        14.745174
+LINKE      11.139748
+SPD        24.162081
+AFD         9.022495
+GRÜNE       6.904020
+FDP        26.004642
+πRATEN      4.322257
+SANDRO      2.364029
+ARNE        1.335556
+SPD2       28.677370
+FDP2       51.550047
+SPD+        4.515288
+FDP+       25.545405
+FDP1&gt;       1.842561
+FDP2&gt;      22.872677
+FDP&gt;+      21.030117
+dtype: float64</pre></div>
+
+<!-- output #33 -->
+<ul>
+<li>Durchschnittlich gibt es <strong>982</strong> Wähler pro Wahlkreis. </li>
+<li>Die durschnittliche Wahlbeteiligung im ersten Wahlgang betrug <strong>44.4%</strong>.</li>
+<li>SPD und FDP liegen im ersten Wahlgang relativ gleich auf, mit durchschnittlich <strong>~25%</strong>.</li>
+<li>Der Zuwachs der Stimmen vom ersten zum zweiten Wahlgang beträgt bei der SPD <strong>4.5%</strong>, bei FDP <strong>25.5%</strong>.</li>
+<li>FDP hat im ersten Wahlgang <strong>1.8%</strong> Vorsprung vor SPD, im zweiten dann <strong>22.9%</strong>.</li>
+</ul>
+<p>Soweit die harten Fakten! Die Briefwahlbezirke sind, wie gesagt, nicht in der Rechnung, aber die Tendenz ist dort ähnlich. </p>
+<h2>Korrelation zwischen Wahlkreisen</h2>
+<p>Im Folgenden sehen wir die (Korrelation)[https://de.wikipedia.org/wiki/Korrelation] der einzelnen Spalten der Tabelle mit einander. Bei der gewählten Skala bedeutet 50 bis 100, "etwas" bis stark korrelierend und -50 bis -100 "etwas" bis stark anti-korrelierend. Eine hohe Korrelation zwischen zwei Parteien z.B. bedeutet, daß mehrere Wahlkreise in ihrem Verhalten ähnlich sind und entweder beide Parteien wählen oder beide Parteien nicht wählen. Eine Anti-korrelation sehen wir z.B. zwischen FDP und LINKE und zwischen GRÜNE und AFD. Wahlkreise die mehr grün wählten, wählten weniger blau, und umgedreht.</p>
+
+<!-- output #34 -->
+<div class="highlight"><pre><span></span><span class="n">corr</span> <span class="o">=</span> <span class="n">dfp</span><span class="o">.</span><span class="n">corr</span><span class="p">()</span>                      <span class="c1"># zeige -1,1 als -100,100, </span>
+                                                  <span class="c1"># wenn nicht in bereich -49,49</span>
+<span class="n">corr</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="o">*</span><span class="mi">100</span><span class="p">)</span> <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">&gt;.</span><span class="mi">5</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+</pre></div>
+
+
+<!-- output #35 -->
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>n</th>
+      <th>nw</th>
+      <th>nu</th>
+      <th>ng</th>
+      <th>CDU</th>
+      <th>LINKE</th>
+      <th>SPD</th>
+      <th>AFD</th>
+      <th>GRÜNE</th>
+      <th>FDP</th>
+      <th>πRATEN</th>
+      <th>SANDRO</th>
+      <th>ARNE</th>
+      <th>SPD2</th>
+      <th>FDP2</th>
+      <th>SPD+</th>
+      <th>FDP+</th>
+      <th>FDP1&gt;</th>
+      <th>FDP2&gt;</th>
+      <th>FDP&gt;+</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>n</th>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-51</td>
+      <td></td>
+      <td>-61</td>
+      <td></td>
+      <td></td>
+      <td>-58</td>
+    </tr>
+    <tr>
+      <th>nw</th>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-75</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>nu</th>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td>-100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>ng</th>
+      <td></td>
+      <td></td>
+      <td>-100</td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>CDU</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>55</td>
+      <td></td>
+      <td>65</td>
+      <td></td>
+      <td>52</td>
+      <td>59</td>
+    </tr>
+    <tr>
+      <th>LINKE</th>
+      <td></td>
+      <td>-75</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-59</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-59</td>
+      <td>65</td>
+      <td></td>
+      <td></td>
+      <td>-55</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>SPD</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>71</td>
+      <td>-51</td>
+      <td></td>
+      <td></td>
+      <td>-80</td>
+      <td>-62</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>AFD</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td>-66</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>60</td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>GRÜNE</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-66</td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>50</td>
+      <td>-67</td>
+      <td></td>
+      <td>-60</td>
+      <td></td>
+      <td>-63</td>
+      <td>-60</td>
+    </tr>
+    <tr>
+      <th>FDP</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-59</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-70</td>
+      <td>66</td>
+      <td></td>
+      <td></td>
+      <td>89</td>
+      <td>71</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>πRATEN</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>SANDRO</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>ARNE</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>SPD2</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>71</td>
+      <td></td>
+      <td>50</td>
+      <td>-70</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td>-80</td>
+      <td>62</td>
+      <td></td>
+      <td>-82</td>
+      <td>-92</td>
+      <td>-60</td>
+    </tr>
+    <tr>
+      <th>FDP2</th>
+      <td>-51</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>55</td>
+      <td>-59</td>
+      <td>-51</td>
+      <td></td>
+      <td>-67</td>
+      <td>66</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-80</td>
+      <td>100</td>
+      <td>-56</td>
+      <td>70</td>
+      <td>70</td>
+      <td>96</td>
+      <td>80</td>
+    </tr>
+    <tr>
+      <th>SPD+</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>65</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>62</td>
+      <td>-56</td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td>-61</td>
+      <td>-69</td>
+    </tr>
+    <tr>
+      <th>FDP+</th>
+      <td>-61</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>65</td>
+      <td></td>
+      <td></td>
+      <td>60</td>
+      <td>-60</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>70</td>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td>61</td>
+      <td>88</td>
+    </tr>
+    <tr>
+      <th>FDP1&gt;</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-80</td>
+      <td></td>
+      <td></td>
+      <td>89</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-82</td>
+      <td>70</td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td>79</td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>FDP2&gt;</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>52</td>
+      <td>-55</td>
+      <td>-62</td>
+      <td></td>
+      <td>-63</td>
+      <td>71</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-92</td>
+      <td>96</td>
+      <td>-61</td>
+      <td>61</td>
+      <td>79</td>
+      <td>100</td>
+      <td>75</td>
+    </tr>
+    <tr>
+      <th>FDP&gt;+</th>
+      <td>-58</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>59</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-60</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-60</td>
+      <td>80</td>
+      <td>-69</td>
+      <td>88</td>
+      <td></td>
+      <td>75</td>
+      <td>100</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- output #36 -->
+<p>Übrigens liegen die Korrelationswerte eigentlich im Bereich -1, 1. Wenn man das Quadrat zieht, erhält man die  <a href="https://de.wikipedia.org/wiki/Bestimmtheitsma%C3%9F">Aufklärung der Varianz</a>. In unserem Fall etwa: <em>Wieviel Prozent der Wahlkreise sind für die Korrelation verantwortlich</em>. z.B. korreliert (logischerweise) <strong>SPD2</strong> mit <strong>SPD</strong>* mit 0.71. 0.71² ist etwa 0.5 oder 50%. D.h. 50% der Wähler in den Wahlkreisen, sind für die Korrelation verantwortlich, in diesem Fall etwa: Haben den Schröter auch im zweiten Wahlgang gewählt, oder nicht gewählt. Mal kurz gezählt, in welchen Wahlkreise die SPD stärker als die FDP war:</p>
+
+<!-- output #37 -->
+<div class="highlight"><pre><span></span><span class="n">num_spd1</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bm1_urne</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="n">bm1_urne</span><span class="p">[</span><span class="s2">&quot;SPD&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">bm1_urne</span><span class="p">[</span><span class="s2">&quot;FDP&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+<span class="n">num_spd2</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bm2_urne</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="n">bm2_urne</span><span class="p">[</span><span class="s2">&quot;SPD&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">bm2_urne</span><span class="p">[</span><span class="s2">&quot;FDP&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
+<span class="k">print</span><span class="p">(</span><span class="s2">&quot;SPD Wahlkreise </span><span class="si">%s</span><span class="s2"> in der 1. Wahl, </span><span class="si">%s</span><span class="s2"> in der 2. Wahl, macht </span><span class="si">%s%%</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+    <span class="n">num_spd1</span><span class="p">,</span> <span class="n">num_spd2</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">num_spd2</span> <span class="o">/</span> <span class="n">num_spd1</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
+</pre></div>
+
+
+<!-- output #38 -->
+<div class="output"><pre>SPD Wahlkreise 35 in der 1. Wahl, 9 in der 2. Wahl, macht 25.71%
+</pre></div>
+
+<!-- output #39 -->
+<p>Interessant ist auch, daß die LINKE negativ mit der Anzahl der Wähler korrelliert, also je weniger Wahlbeteiligung desto stärker ist die LINKE - höö?</p>
+<p>Warum war jetzt die FDP im zweiten Wahlgang so stark? Schauen wir womit der Zuwachs der FDP (<strong>FDP+</strong>) korreliert: CDU und AFD. Na super. </p>
+<p>Wer hat die SPD im zweiten Wahlgang noch ein bisschen angeschoben (<strong>SPD+</strong>)? Die Linke. Und welche Wahlkreise haben dem Ausbau des FDP-Vorsprungs (<strong>FDP&gt;+</strong>) entgegengewirkt, wenn auch nur marginal: Die grünen Wahlkreise.</p>
+<p>Jetzt das selbe nochmal mit den Briefbezirken:</p>
+
+<!-- output #40 -->
+<div class="highlight"><pre><span></span><span class="n">df</span> <span class="o">=</span> <span class="n">enrich_dataframe</span><span class="p">(</span><span class="n">bm1_brief</span><span class="p">,</span> <span class="n">bm2_brief</span><span class="p">)</span>
+<span class="n">dfp</span> <span class="o">=</span> <span class="n">calc_percent</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+
+<span class="n">dfp</span><span class="o">.</span><span class="n">corr</span><span class="p">()</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="o">*</span><span class="mi">100</span><span class="p">)</span> <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">&gt;.</span><span class="mi">5</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+</pre></div>
+
+
+<!-- output #41 -->
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>n</th>
+      <th>nw</th>
+      <th>nu</th>
+      <th>ng</th>
+      <th>CDU</th>
+      <th>LINKE</th>
+      <th>SPD</th>
+      <th>AFD</th>
+      <th>GRÜNE</th>
+      <th>FDP</th>
+      <th>πRATEN</th>
+      <th>SANDRO</th>
+      <th>ARNE</th>
+      <th>SPD2</th>
+      <th>FDP2</th>
+      <th>SPD+</th>
+      <th>FDP+</th>
+      <th>FDP1&gt;</th>
+      <th>FDP2&gt;</th>
+      <th>FDP&gt;+</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>n</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>nw</th>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-54</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-60</td>
+      <td></td>
+      <td>-56</td>
+      <td>-58</td>
+      <td>-62</td>
+      <td>-59</td>
+    </tr>
+    <tr>
+      <th>nu</th>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td>-100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-51</td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>ng</th>
+      <td></td>
+      <td></td>
+      <td>-100</td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>51</td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>CDU</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>LINKE</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-71</td>
+      <td></td>
+      <td></td>
+      <td>58</td>
+      <td></td>
+      <td>-70</td>
+      <td></td>
+      <td>-58</td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>SPD</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-65</td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>AFD</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td>-66</td>
+      <td></td>
+      <td>-50</td>
+      <td>53</td>
+      <td></td>
+      <td>-61</td>
+      <td></td>
+      <td>-53</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>GRÜNE</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-66</td>
+      <td>100</td>
+      <td>-54</td>
+      <td>50</td>
+      <td></td>
+      <td></td>
+      <td>95</td>
+      <td></td>
+      <td>92</td>
+      <td></td>
+      <td>-61</td>
+      <td>-73</td>
+      <td>-73</td>
+    </tr>
+    <tr>
+      <th>FDP</th>
+      <td></td>
+      <td>-54</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-71</td>
+      <td></td>
+      <td></td>
+      <td>-54</td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-62</td>
+      <td>89</td>
+      <td>-59</td>
+      <td>66</td>
+      <td>92</td>
+      <td>88</td>
+      <td>78</td>
+    </tr>
+    <tr>
+      <th>πRATEN</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-50</td>
+      <td>50</td>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>SANDRO</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>53</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>ARNE</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>58</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+    </tr>
+    <tr>
+      <th>SPD2</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-61</td>
+      <td>95</td>
+      <td>-62</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td>96</td>
+      <td></td>
+      <td>-69</td>
+      <td>-84</td>
+      <td>-84</td>
+    </tr>
+    <tr>
+      <th>FDP2</th>
+      <td></td>
+      <td>-60</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-70</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>89</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td>93</td>
+      <td>82</td>
+      <td>87</td>
+      <td>81</td>
+    </tr>
+    <tr>
+      <th>SPD+</th>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-53</td>
+      <td>92</td>
+      <td>-59</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>96</td>
+      <td></td>
+      <td>100</td>
+      <td></td>
+      <td>-57</td>
+      <td>-80</td>
+      <td>-85</td>
+    </tr>
+    <tr>
+      <th>FDP+</th>
+      <td></td>
+      <td>-56</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-58</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>66</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>93</td>
+      <td></td>
+      <td>100</td>
+      <td>60</td>
+      <td>72</td>
+      <td>71</td>
+    </tr>
+    <tr>
+      <th>FDP1&gt;</th>
+      <td></td>
+      <td>-58</td>
+      <td>-51</td>
+      <td>51</td>
+      <td></td>
+      <td></td>
+      <td>-65</td>
+      <td></td>
+      <td>-61</td>
+      <td>92</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-69</td>
+      <td>82</td>
+      <td>-57</td>
+      <td>60</td>
+      <td>100</td>
+      <td>88</td>
+      <td>73</td>
+    </tr>
+    <tr>
+      <th>FDP2&gt;</th>
+      <td></td>
+      <td>-62</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-73</td>
+      <td>88</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-84</td>
+      <td>87</td>
+      <td>-80</td>
+      <td>72</td>
+      <td>88</td>
+      <td>100</td>
+      <td>96</td>
+    </tr>
+    <tr>
+      <th>FDP&gt;+</th>
+      <td></td>
+      <td>-59</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-73</td>
+      <td>78</td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>-84</td>
+      <td>81</td>
+      <td>-85</td>
+      <td>71</td>
+      <td>73</td>
+      <td>96</td>
+      <td>100</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- output #42 -->
+<p>Soso, Sandro Dreßler korreliert mit der AFD, Arne Petrich mit der Linken und die Piraten mit den Grünen. </p>
+<p>Jetzt hat auch die FDP den Außenseiterbonus: negative Korrelation mit der Anzahl der Stimmen.</p>
+    
+                    </div>
+                </body>
+            </html>
