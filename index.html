@@ -26,7 +26,8 @@
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">data</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">tools.data</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">tools.geodata</span> <span class="kn">import</span> <span class="o">*</span>
 </pre></div>
 
 
@@ -1448,7 +1449,7 @@ dtype: float64</pre></div>
 </ul>
 <p>Soweit die harten Fakten! Die Briefwahlbezirke sind, wie gesagt, nicht in der Rechnung, aber die Tendenz ist dort ähnlich. </p>
 <h2>Korrelation zwischen Wahlkreisen</h2>
-<p>Im Folgenden sehen wir die (Korrelation)[https://de.wikipedia.org/wiki/Korrelation] der einzelnen Spalten der Tabelle mit einander. Bei der gewählten Skala bedeutet 50 bis 100, "etwas" bis stark korrelierend und -50 bis -100 "etwas" bis stark anti-korrelierend. Eine hohe Korrelation zwischen zwei Parteien z.B. bedeutet, daß mehrere Wahlkreise in ihrem Verhalten ähnlich sind und entweder beide Parteien wählen oder beide Parteien nicht wählen. Eine Anti-korrelation sehen wir z.B. zwischen FDP und LINKE und zwischen GRÜNE und AFD. Wahlkreise die mehr grün wählten, wählten weniger blau, und umgedreht.</p>
+<p>Im Folgenden sehen wir die <a href="https://de.wikipedia.org/wiki/Korrelation">Korrelation</a> der einzelnen Spalten der Tabelle mit einander. Bei der gewählten Skala bedeutet 50 bis 100, "etwas" bis stark korrelierend und -50 bis -100 "etwas" bis stark anti-korrelierend. Eine hohe Korrelation zwischen zwei Parteien z.B. bedeutet, daß mehrere Wahlkreise in ihrem Verhalten ähnlich sind und entweder beide Parteien wählen oder beide Parteien nicht wählen. Eine Anti-korrelation sehen wir z.B. zwischen FDP und LINKE und zwischen GRÜNE und AFD. Wahlkreise die mehr grün wählten, wählten weniger blau, und umgedreht.</p>
 
 <!-- output #34 -->
 <div class="highlight"><pre><span></span><span class="n">corr</span> <span class="o">=</span> <span class="n">dfp</span><span class="o">.</span><span class="n">corr</span><span class="p">()</span>                      <span class="c1"># zeige -1,1 als -100,100, </span>
@@ -1964,7 +1965,7 @@ dtype: float64</pre></div>
 </div>
 
 <!-- output #36 -->
-<p>Übrigens liegen die Korrelationswerte eigentlich im Bereich -1, 1. Wenn man das Quadrat zieht, erhält man die  <a href="https://de.wikipedia.org/wiki/Bestimmtheitsma%C3%9F">Aufklärung der Varianz</a>. In unserem Fall etwa: <em>Wieviel Prozent der Wahlkreise sind für die Korrelation verantwortlich</em>. z.B. korreliert (logischerweise) <strong>SPD2</strong> mit <strong>SPD</strong>* mit 0.71. 0.71² ist etwa 0.5 oder 50%. D.h. 50% der Wähler in den Wahlkreisen, sind für die Korrelation verantwortlich, in diesem Fall etwa: Haben den Schröter auch im zweiten Wahlgang gewählt, oder nicht gewählt. Mal kurz gezählt, in welchen Wahlkreise die SPD stärker als die FDP war:</p>
+<p>Übrigens liegen die Korrelationswerte eigentlich im Bereich -1, 1. Wenn man das Quadrat zieht, erhält man die  <a href="https://de.wikipedia.org/wiki/Bestimmtheitsma%C3%9F">Aufklärung der Varianz</a>. In unserem Fall etwa: <em>Wieviel Prozent der Wahlkreise sind für die Korrelation verantwortlich</em>. z.B. korreliert (logischerweise) <strong>SPD2</strong> und <strong>SPD</strong> mit 0.71. 0.71² ist etwa 0.5 oder 50%. D.h. 50% der Wähler in den Wahlkreisen, sind für die Korrelation verantwortlich, in diesem Fall etwa: <em>Haben den Schröter auch im zweiten Wahlgang nicht gewählt</em>. Mal kurz gezählt, in welchen Wahlkreisen die SPD stärker als die FDP war:</p>
 
 <!-- output #37 -->
 <div class="highlight"><pre><span></span><span class="n">num_spd1</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bm1_urne</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">if</span> <span class="n">bm1_urne</span><span class="p">[</span><span class="s2">&quot;SPD&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">bm1_urne</span><span class="p">[</span><span class="s2">&quot;FDP&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>

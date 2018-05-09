@@ -104,9 +104,9 @@ def download_file(url, filename, use_cache=True):
     return True
 
 
-def load_json(filename, url):
-    filename = FILENAME_PATTERN % filename
-    download_file(url, filename)
+def load_json(fileid):
+    filename = FILENAME_PATTERN % DATA_FILES[fileid]["filename"]
+    download_file(DATA_FILES[fileid]["url"], filename)
     with open(filename) as fp:
         data = json.load(fp)
     return data
@@ -118,11 +118,11 @@ def load_pandas_bmwahl(fileid):
         "Stimmenmehrheit",
         "Wahlbeteiligung",
     }
-    data = load_json(DATA_FILES[fileid]["filename"], DATA_FILES[fileid]["url"])
+    data = load_json(fileid)
     geographies = data["geographies"][0]
 
     dic = OrderedDict({
-        "Bezirk": [f["name"] for f in geographies["features"][1:]],
+        "Bezirk": ["%(name)s" % f for f in geographies["features"][1:]],
     })
     for theme in geographies["themes"]:
         for indicator in theme["indicators"]:
@@ -148,7 +148,7 @@ def load_pandas_bmwahl(fileid):
 
 def load_pandas_stat():
 
-    data = load_json(DATA_FILES["stats-index"]["filename"], DATA_FILES["stats-index"]["url"])
+    data = load_json("stats-index")
 
     geographies = data["geographies"][0]
     dic = OrderedDict({
@@ -197,9 +197,3 @@ if __name__ == "__main__":
                 load_pandas_bmwahl(f)
 
         load_pandas_stat()
-
-    if 1:
-        def load_polygons(fileid):
-            data = load_json(DATA_FILES[fileid]["filename"], DATA_FILES[fileid]["url"])
-            print(data)
-        load_polygons("bm-shape")
